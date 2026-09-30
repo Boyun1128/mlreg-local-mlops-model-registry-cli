@@ -1,0 +1,58 @@
+name: Autograding Tests
+on:
+  - push
+  - workflow_dispatch
+  - repository_dispatch
+permissions:
+  checks: write
+  actions: read
+  contents: read
+jobs:
+  run-autograding-tests:
+    runs-on: self-hosted
+    container:
+      image: python:3.10-slim
+    if: github.actor != 'github-classroom[bot]'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check v1/sdd_v1.md
+      id: check-sdd
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Check v1/sdd_v1.md
+        setup-command: ''
+        command: 'test -f v1/sdd_v1.md'
+        timeout: 10
+        max-score: 30
+
+    - name: Check v1/main.py
+      id: check-main
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Check v1/main.py
+        setup-command: ''
+        command: 'test -f v1/main.py'
+        timeout: 10
+        max-score: 30
+
+    - name: Run main.py help
+      id: run-help
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Run python v1/main.py --help
+        setup-command: 'if [ -f v1/requirements.txt ]; then pip install -r v1/requirements.txt; fi'
+        command: 'python v1/main.py --help'
+        timeout: 10
+        max-score: 40
+
+    - name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
+      env:
+        CHECK-SDD_RESULTS: "${{ steps.check-sdd.outputs.result }}"
+        CHECK-MAIN_RESULTS: "${{ steps.check-main.outputs.result }}"
+        RUN-HELP_RESULTS: "${{ steps.run-help.outputs.result }}"
+      with:
+        runners: check-sdd,check-main,run-help

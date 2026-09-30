@@ -1,0 +1,71 @@
+name: Autograding Tests
+on:
+  - push
+  - workflow_dispatch
+  - repository_dispatch
+permissions:
+  checks: write
+  actions: read
+  contents: read
+jobs:
+  run-autograding-tests:
+    runs-on: self-hosted
+    container:
+      image: python:3.10-slim
+    if: github.actor != 'github-classroom[bot]'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check v2/sdd_v2.md
+      id: check-sdd
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Check v2/sdd_v2.md
+        setup-command: ''
+        command: 'test -f v2/sdd_v2.md'
+        timeout: 10
+        max-score: 25
+
+    - name: Check v2/main.py
+      id: check-main
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Check v2/main.py
+        setup-command: ''
+        command: 'test -f v2/main.py'
+        timeout: 10
+        max-score: 25
+
+    - name: Run main.py help
+      id: run-help
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Run python v2/main.py --help
+        setup-command: 'if [ -f v2/requirements.txt ]; then pip install -r v2/requirements.txt; fi'
+        command: 'python v2/main.py --help'
+        timeout: 10
+        max-score: 25
+
+    - name: Check README.md
+      id: check-readme
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Check README.md
+        setup-command: ''
+        command: 'test -f README.md'
+        timeout: 10
+        max-score: 25
+
+    - name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
+      env:
+        CHECK-SDD_RESULTS: "${{ steps.check-sdd.outputs.result }}"
+        CHECK-MAIN_RESULTS: "${{ steps.check-main.outputs.result }}"
+        RUN-HELP_RESULTS: "${{ steps.run-help.outputs.result }}"
+        CHECK-README_RESULTS: "${{ steps.check-readme.outputs.result }}"
+      with:
+        runners: check-sdd,check-main,run-help,check-readme
+
+# This is the CI for V2
